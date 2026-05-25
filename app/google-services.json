@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "867631520500",
+    "project_id": "study-smart-app-123",
+    "storage_bucket": "study-smart-app-123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:867631520500:android:00c0ba31dd85b1b69c1ca1",
+        "android_client_info": {
+          "package_name": "com.example.lets_party_hizrugang"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAp__Ijupp8jVyf2LjOwAY5-mcL-OIqUWo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
