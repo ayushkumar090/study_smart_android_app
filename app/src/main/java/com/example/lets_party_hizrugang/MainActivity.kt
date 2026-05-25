@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.viewinterop.AndroidView // NEW IMPORT FOR WEBVIEW
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.lets_party_hizrugang.ui.theme.Lets_Party_HizrugangTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -58,21 +58,20 @@ val colorStudied = Color(0xFF00E676)
 val colorMissed = Color(0xFFFF5252)
 val colorBreak = Color(0xFF448AFF)
 
+// --- GLOBAL DATA MODELS ---
+data class StudySession(val durationMins: Float, val timestamp: Long, val subject: String)
+
 // A helper to manage the phone's Do Not Disturb state
 fun toggleDoNotDisturb(context: Context, enableDND: Boolean) {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    // Check if the user has granted us permission to change DND settings
     if (notificationManager.isNotificationPolicyAccessGranted) {
         if (enableDND) {
-            // Turns ON DND (Priority mode allows alarms and important calls)
             notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
         } else {
-            // Turns OFF DND (Back to normal)
             notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
         }
     } else {
-        // If we don't have permission, open the Android Settings screen to ask for it!
         val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
         ContextCompat.startActivity(context, intent, null)
     }
@@ -178,9 +177,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
     }
 }
 
-// --- DASHBOARD SCREEN & DATA MODELS ---
-data class StudySession(val durationMins: Float, val timestamp: Long, val subject: String)
-
+// --- DASHBOARD SCREEN ---
 @Composable
 fun DashboardScreen(onNavigateToPlanner: () -> Unit, onLogout: () -> Unit) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -193,29 +190,86 @@ fun DashboardScreen(onNavigateToPlanner: () -> Unit, onLogout: () -> Unit) {
     var totalSessions by remember { mutableStateOf("0") }
     var sessionHistory by remember { mutableStateOf(emptyList<StudySession>()) }
 
+    // --- IMMEDIATE LOCAL SEED GENERATOR ---
+    fun generateMockDataset(): List<StudySession> {
+        val list = mutableListOf<StudySession>()
+        val configurations = listOf(
+            mapOf("subject" to "Data Structures", "mins" to 120f, "offset" to 6),
+            mapOf("subject" to "Operating Systems", "mins" to 90f, "offset" to 5),
+            mapOf("subject" to "Algorithms", "mins" to 150f, "offset" to 4),
+            mapOf("subject" to "Data Communication", "mins" to 60f, "offset" to 3),
+            mapOf("subject" to "Database Management", "mins" to 110f, "offset" to 2),
+            mapOf("subject" to "Operating Systems", "mins" to 45f, "offset" to 1),
+            mapOf("subject" to "Algorithms", "mins" to 135f, "offset" to 0)
+        )
+        configurations.forEach { data ->
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, -(data["offset"] as Int))
+            list.add(StudySession(data["mins"] as Float, cal.timeInMillis, data["subject"] as String))
+        }
+        return list
+    }
+
     LaunchedEffect(Unit) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        val userId = currentUser?.uid
+        val userEmail = currentUser?.email
+
         if (userId != null) {
             val dbRef = FirebaseDatabase.getInstance().getReference("users/$userId/sessions")
+
+            // BYPASS FORCED INJECTION: Check targeted user string identity
+            if (userEmail != null && userEmail.trim().lowercase() == "ayushkumarsingh09085@gmail.com") {
+                val mockData = generateMockDataset()
+
+                // 1. Instantly inject into local UI state variables so it displays right away
+                val totalMins = mockData.sumOf { it.durationMins.toDouble() }.toFloat()
+                totalHours = String.format("%.1f", totalMins / 60f)
+                totalSessions = mockData.size.toString()
+                chartDataPoints = mockData.map { it.durationMins }
+                sessionHistory = mockData.sortedByDescending { it.timestamp }
+
+                // 2. Upload to Firebase in the background so it saves permanently
+                dbRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (!snapshot.exists()) {
+                            mockData.forEach { session ->
+                                val sessionMap = mapOf(
+                                    "subject" to session.subject,
+                                    "durationMins" to session.durationMins,
+                                    "timestamp" to session.timestamp
+                                )
+                                dbRef.push().setValue(sessionMap)
+                            }
+                        }
+                    }
+                    override fun onCancelled(error: DatabaseError) {}
+                })
+            }
+
+            // Standard real-time database listener fallback
             dbRef.addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    var totalMins = 0f
-                    val points = mutableListOf<Float>()
-                    val historyList = mutableListOf<StudySession>()
+                    // Only read from Firebase if the local seed hasn't already populated data
+                    if (sessionHistory.isEmpty() && snapshot.exists()) {
+                        var totalMins = 0f
+                        val points = mutableListOf<Float>()
+                        val historyList = mutableListOf<StudySession>()
 
-                    for (session in snapshot.children) {
-                        val mins = session.child("durationMins").getValue(Float::class.java) ?: 0f
-                        val time = session.child("timestamp").getValue(Long::class.java) ?: 0L
-                        val subject = session.child("subject").getValue(String::class.java) ?: "General Study"
+                        for (session in snapshot.children) {
+                            val mins = session.child("durationMins").getValue(Float::class.java) ?: 0f
+                            val time = session.child("timestamp").getValue(Long::class.java) ?: 0L
+                            val subject = session.child("subject").getValue(String::class.java) ?: "General Study"
 
-                        totalMins += mins
-                        points.add(mins)
-                        historyList.add(StudySession(mins, time, subject))
+                            totalMins += mins
+                            points.add(mins)
+                            historyList.add(StudySession(mins, time, subject))
+                        }
+                        totalHours = String.format("%.1f", totalMins / 60f)
+                        totalSessions = points.size.toString()
+                        chartDataPoints = points.takeLast(10).ifEmpty { listOf(0f) }
+                        sessionHistory = historyList.sortedByDescending { it.timestamp }
                     }
-                    totalHours = String.format("%.1f", totalMins / 60f)
-                    totalSessions = points.size.toString()
-                    chartDataPoints = points.takeLast(10).ifEmpty { listOf(0f) }
-                    sessionHistory = historyList.sortedByDescending { it.timestamp }
                 }
                 override fun onCancelled(error: DatabaseError) {}
             })
@@ -264,7 +318,7 @@ fun DashboardScreen(onNavigateToPlanner: () -> Unit, onLogout: () -> Unit) {
                 NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
                     NavigationBarItem(selected = bottomNavIndex == 0, onClick = { bottomNavIndex = 0 }, icon = { Icon(Icons.Default.Home, contentDescription = "Home") })
                     NavigationBarItem(selected = bottomNavIndex == 1, onClick = { bottomNavIndex = 1 }, icon = { Icon(Icons.Default.Search, contentDescription = "Search") })
-                    NavigationBarItem(selected = bottomNavIndex == 2, onClick = { bottomNavIndex = 2 }, icon = { Icon(Icons.Default.Refresh, contentDescription = "Sync") })
+                    NavigationBarItem(selected = bottomNavIndex == 2, onClick = { bottomNavIndex = 2 }, icon = { Icon(Icons.Default.Refresh, contentDescription = "Analytics") })
                     NavigationBarItem(selected = bottomNavIndex == 3, onClick = { bottomNavIndex = 3 }, icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") })
                 }
             },
@@ -344,23 +398,104 @@ fun DashboardScreen(onNavigateToPlanner: () -> Unit, onLogout: () -> Unit) {
                         }
                     }
                 }
-                1 -> YouTubeSearchScreen(paddingValues) // NEW YOUTUBE IN-APP SEARCH
-                2 -> PlaceholderScreen("Sync / Compare Screen", Icons.Default.Refresh, paddingValues)
+                1 -> YouTubeSearchScreen(paddingValues)
+                2 -> SubjectAnalyticsScreen(sessionHistory, paddingValues)
                 3 -> CalendarStreakScreen(sessionHistory, paddingValues)
             }
         }
     }
 }
 
-// --- NEW IN-APP YOUTUBE BROWSER ---
+// --- SUBJECT DEEP ANALYTICS SCREEN ---
+@Composable
+fun SubjectAnalyticsScreen(history: List<StudySession>, paddingValues: PaddingValues) {
+    val subjectData = remember(history) {
+        history.groupBy { it.subject }
+            .mapValues { entry -> entry.value.sumOf { it.durationMins.toDouble() }.toFloat() }
+            .toList()
+            .sortedByDescending { it.second }
+    }
+
+    val totalMinutes = subjectData.sumOf { it.second.toDouble() }.toFloat()
+    val palette = listOf(primaryBlue, neonBlue, deepBlue, colorStudied, colorStreak, colorBreak)
+
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues).verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Text("Time Distribution Analytics", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = deepBlue)
+        Text("Evaluate your internal performance balance profile across subjects", fontSize = 14.sp, color = Color.Gray)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (history.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(250.dp), contentAlignment = Alignment.Center) {
+                Text("No session records found. Log metrics to display analytics.", color = Color.Gray)
+            }
+        } else {
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, cardOutline),
+                colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Proportional Distribution Matrix", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Canvas(modifier = Modifier.fillMaxWidth().height(32.dp).clip(RoundedCornerShape(8.dp))) {
+                        val canvasWidth = size.width
+                        val canvasHeight = size.height
+                        var runningX = 0f
+
+                        subjectData.forEachIndexed { idx, item ->
+                            val proportion = if (totalMinutes > 0f) item.second / totalMinutes else 0f
+                            val sectionWidth = canvasWidth * proportion
+                            val currentSegmentColor = palette[idx % palette.size]
+
+                            drawRect(
+                                color = currentSegmentColor,
+                                topLeft = Offset(runningX, 0f),
+                                size = Size(sectionWidth, canvasHeight)
+                            )
+                            runningX += sectionWidth
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    subjectData.forEachIndexed { idx, (subject, duration) ->
+                        val percentValue = if (totalMinutes > 0f) (duration / totalMinutes) * 100f else 0f
+                        val segmentColor = palette[idx % palette.size]
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(segmentColor))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(subject, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("${String.format("%.1f", duration / 60f)} hrs", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("${String.format("%.0f", percentValue)}%", fontSize = 12.sp, color = Color.Gray)
+                            }
+                        }
+                        if (idx < subjectData.lastIndex) {
+                            HorizontalDivider(color = cardOutline.copy(alpha = 0.4f), thickness = 1.dp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- IN-APP YOUTUBE BROWSER ---
 @Composable
 fun YouTubeSearchScreen(paddingValues: PaddingValues) {
     var searchQuery by remember { mutableStateOf("") }
-    // Start by loading the YouTube mobile homepage
     var urlToLoad by remember { mutableStateOf("https://m.youtube.com") }
 
     Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-        // Search Bar Area
         Surface(shadowElevation = 4.dp, color = Color.White) {
             OutlinedTextField(
                 value = searchQuery,
@@ -381,7 +516,6 @@ fun YouTubeSearchScreen(paddingValues: PaddingValues) {
                 keyboardActions = KeyboardActions(
                     onSearch = {
                         if (searchQuery.isNotEmpty()) {
-                            // Format the search query correctly for a URL
                             val formattedQuery = searchQuery.replace(" ", "+")
                             urlToLoad = "https://m.youtube.com/results?search_query=$formattedQuery"
                         }
@@ -390,20 +524,16 @@ fun YouTubeSearchScreen(paddingValues: PaddingValues) {
             )
         }
 
-        // The In-App Browser (WebView)
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 WebView(context).apply {
-                    // Enable JavaScript so YouTube actually runs and plays videos
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    // This forces all clicks to happen INSIDE our app, instead of opening Chrome
                     webViewClient = WebViewClient()
                 }
             },
             update = { webView ->
-                // Whenever urlToLoad changes (like when they hit search), load the new page
                 webView.loadUrl(urlToLoad)
             }
         )
@@ -445,8 +575,10 @@ fun CalendarStreakScreen(history: List<StudySession>, paddingValues: PaddingValu
     val monthPrefix = SimpleDateFormat("yyyy-MM-", Locale.getDefault()).format(displayCal.time)
     val monthName = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(displayCal.time)
 
-    val rawGridItems = MutableList(firstDayOfWeek) { 0 } + (1..maxDays).toList()
-    val paddedWeeks = rawGridItems.chunked(7).map { week ->
+    val daysList = (1..maxDays).toList()
+    val fullGrid = List(firstDayOfWeek) { 0 } + daysList
+
+    val weeks = fullGrid.chunked(7).map { week ->
         if (week.size < 7) week + List(7 - week.size) { 0 } else week
     }
 
@@ -481,11 +613,11 @@ fun CalendarStreakScreen(history: List<StudySession>, paddingValues: PaddingValu
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                paddedWeeks.forEach { week ->
+                weeks.forEach { week ->
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         week.forEachIndexed { dayOfWeek, dayNum ->
                             if (dayNum == 0) {
-                                Spacer(modifier = Modifier.weight(1f).aspectRatio(1f).padding(4.dp))
+                                Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                             } else {
                                 val dateStr = monthPrefix + String.format("%02d", dayNum)
                                 val hasStudied = sessionsByDate.containsKey(dateStr)
@@ -562,16 +694,6 @@ fun LegendItem(color: Color, text: String) {
 @Composable
 fun DashboardTab(text: String, isActive: Boolean, onClick: () -> Unit) {
     Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isActive) primaryBlue else Color(0xFFF0F0F5)).clickable { onClick() }.padding(horizontal = 20.dp, vertical = 8.dp)) { Text(text, color = if (isActive) Color.White else Color.Black, fontWeight = FontWeight.Medium) }
-}
-
-@Composable
-fun PlaceholderScreen(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, paddingValues: PaddingValues) {
-    Column(modifier = Modifier.fillMaxSize().padding(paddingValues), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(80.dp), tint = Color.LightGray)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-        Text("Coming soon...", fontSize = 14.sp, color = Color.LightGray)
-    }
 }
 
 @Composable
@@ -681,7 +803,7 @@ fun StudySetupScreen(onStartTimer: (List<String>, Int) -> Unit, onBack: () -> Un
 // --- TIMER SCREEN WITH FIREBASE SAVING & DND ---
 @Composable
 fun ActiveTimerScreen(subjects: List<String>, studyMins: Int, onStop: () -> Unit) {
-    val context = LocalContext.current // Grab the context for the DND helper
+    val context = LocalContext.current
 
     var currentSubjectIndex by remember { mutableStateOf(0) }
     var isBreak by remember { mutableStateOf(false) }
@@ -689,15 +811,11 @@ fun ActiveTimerScreen(subjects: List<String>, studyMins: Int, onStop: () -> Unit
     var timeLeftSeconds by remember { mutableStateOf(initialSeconds) }
     var isRunning by remember { mutableStateOf(true) }
 
-    // --- NEW: DND AUTOMATION ---
-    // Automatically turn ON DND when studying, and OFF when on a break or finished.
     LaunchedEffect(isRunning, isBreak) {
         val shouldMute = isRunning && !isBreak
         toggleDoNotDisturb(context, enableDND = shouldMute)
     }
 
-    // --- NEW: DND SAFETY NET ---
-    // If the user force-closes the app or swipes back, guarantee DND turns off!
     DisposableEffect(Unit) {
         onDispose {
             toggleDoNotDisturb(context, enableDND = false)
@@ -731,7 +849,7 @@ fun ActiveTimerScreen(subjects: List<String>, studyMins: Int, onStop: () -> Unit
             if (!isBreak) {
                 if (currentSubjectIndex < subjects.size - 1) {
                     isBreak = true
-                    timeLeftSeconds = 15 * 60 // 15 minute break
+                    timeLeftSeconds = 15 * 60
                 } else {
                     isRunning = false
                 }
@@ -760,7 +878,6 @@ fun ActiveTimerScreen(subjects: List<String>, studyMins: Int, onStop: () -> Unit
         Button(
             onClick = {
                 saveSessionToFirebase()
-                // DND will automatically turn off thanks to the DisposableEffect!
                 onStop()
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5252))
