@@ -85,7 +85,7 @@ To verify the visual outputs of the user interface tracking state modules, revie
 
 <img width="391" height="862" alt="image" src="https://github.com/user-attachments/assets/60621772-3e21-4f93-a991-409caa97766c" />
 <img width="387" height="864" alt="image" src="https://github.com/ayushkumar090/study_smart_android_app/blob/master/Screenshot%202026-05-27%20225018.png" />
-<img width="389" height="868" alt="image" src="https://github.com/user-attachments/assets/a6346cf2-e6f7-4932-aa90-22575770d27f" />
+<img width="389" height="868" alt="image" src="https://github.com/ayushkumar090/study_smart_android_app/blob/master/Screenshot%202026-05-27%20225046.png" />
 
 
 
