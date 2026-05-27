@@ -86,11 +86,10 @@ To verify the visual outputs of the user interface tracking state modules, revie
 <p align="center">
   <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-27%20224924.png" width="260" alt="Stats Dashboard">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%2026-05-27%20225018.png" width="260" alt="Subject Analytics">
+  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-27%20225018.png" width="260" alt="Subject Analytics">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot 2026-05-25 20142410.png" width="260" alt="Calendar Streak View">
+  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-27%20225046.png" width="260" alt="Calendar Streak View">
 </p>
-
 
 * **Figure 1 (Left):** Real-time monitoring metrics including compiled operational duration metrics and short-term trending line data graphs.
 * **Figure 2 (Center):** Custom-drawn execution ratios allocating proportional performance matrices mapped per subject profile assignment.
