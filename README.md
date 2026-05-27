@@ -84,11 +84,11 @@ print("File saved successfully.")
 To verify the visual outputs of the user interface tracking state modules, review the runtime device captures from the ecosystem below:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-25%20142340.png" width="260" alt="Stats Dashboard">
+  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot 2026-05-25 20142340.png" width="260" alt="Stats Dashboard">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-25%20142354.png" width="260" alt="Subject Analytics">
+  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot 2026-05-25 20142354.png" width="260" alt="Subject Analytics">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-25%20142410.png" width="260" alt="Calendar Streak View">
+  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot 2026-05-25 20142410.png" width="260" alt="Calendar Streak View">
 </p>
 
 
