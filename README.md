@@ -81,14 +81,14 @@ print("File saved successfully.")
 
 ## 📱 Application Visual Gallery
 
-To verify the visual outputs of the user interface tracking state modules, review the runtime device captures from the ecosystem below:
+To verify the visual outputs of the user interface tracking modules, review the runtime device captures below:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-27%20224924.png" width="260" alt="Stats Dashboard">
+  <img src="assets/dashboard.png" width="260" alt="Stats Dashboard"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-27%20225018.png" width="260" alt="Subject Analytics">
+  <img src="assets/analytics.png" width="260" alt="Subject Analytics"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/ayushkumar090/study_smart_android_app/master/Screenshot%202026-05-27%20225046.png" width="260" alt="Calendar Streak View">
+  <img src="assets/calendar.png" width="260" alt="Calendar Streak View"/>
 </p>
 
 * **Figure 1 (Left):** Real-time monitoring metrics including compiled operational duration metrics and short-term trending line data graphs.
