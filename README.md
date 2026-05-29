@@ -51,13 +51,18 @@ DisposableEffect(Unit) {
         toggleDoNotDisturb(context, enableDND = false) // Hardware safety guarantee
     }
 }
-🔧 Installation & Verification Setup
+```
+
+---
+
+## 🔧 Installation & Verification Setup
 To compile and verify the operational lifecycle of this application locally:
 
 Clone this repository directly within your terminal workspace:
 
-Bash
-git clone [https://github.com/ayushkumar090/Study_smart_android_app.git](https://github.com/ayushkumar090/Study_smart_android_app.git)
+```bash
+git clone https://github.com/ayushkumar090/Study_smart_android_app.git
+```
 Open the project folder inside Android Studio (Ladybug or newer).
 
 Synchronize your build workspace files via the Gradle build tool manager.
@@ -66,18 +71,14 @@ Deploy the application to a connected physical device or an Android Virtual Devi
 
 To test the pre-seeded analytical charts, login with the reviewer profile account credential strings (ayushkumarsingh09085@gmail.com).
 
-👨‍💻 Developer Profile
-Developer: Ayush Kumar
+---
 
-GitHub Profile: @ayushkumar090
+## 👨‍💻 Developer Profile
+**Developer:** Ayush Kumar
 
-Core Focus: Native Android System Engineering, Declarative UI design, Cloud Infrastructure Integration
-"""
+**GitHub Profile:** [@ayushkumar090](https://github.com/ayushkumar090)
 
-with open("README.md", "w", encoding="utf-8") as f:
-f.write(readme_content)
-
-print("File saved successfully.")
+**Core Focus:** Native Android System Engineering, Declarative UI design, Cloud Infrastructure Integration
 
 ## 📱 Application Visual Gallery
 
